@@ -76,7 +76,7 @@ class CrawlLogger extends CrawlObserver
                 }
             }
         } catch(\Exception $e) {
-            Debug::out(__FILE__, __LINE__, __FUNCTION__, $e);
+            Debug::out(__FILE__, __LINE__, __FUNCTION__, $e->getMessage());
         }
         
         $this->logCrawl($url, $foundOnUrl);
@@ -108,47 +108,75 @@ class CrawlLogger extends CrawlObserver
      */
     public function finishedCrawling(): void
     {
-        echo sprintf("%s, %s, %s, %d\n", $this->page['path'], $this->page['title'], $this->page['description'], strlen($this->page['body']));
-        Debug::out(__FILE__, __LINE__, __FUNCTION__, sprintf("%s, %s, %s, %d\n", $this->page['path'], $this->page['title'], $this->page['description'], strlen($this->page['body'])));
+        //echo sprintf("%s, %s, %s, %d\n", $this->page['path'], $this->page['title'], $this->page['description'], strlen($this->page['body']));
+        //Debug::out(__FILE__, __LINE__, __FUNCTION__, sprintf("%s, %s, %s, %d\n", $this->page['path'], $this->page['title'], $this->page['description'], strlen($this->page['body'])));
         Debug::out(__FILE__, __LINE__, __FUNCTION__, "{$this->observerId}finished crawling");
     }
 
-    public function getResult(): string {
-        return sprintf("%s, %s, %s, %d\n", $this->page['path'], $this->page['title'], $this->page['description'], strlen($this->page['body']));
+    public function getResult(): array {
+        return $this->page;
     }
 }
 
 class BrowsershotController extends Controller
 {
-    function page_title($url):string {
+    function page_information($url):string {
         $ret = '';
         try {
             $logger = new CrawlLogger();
             Crawler::create()
                 ->ignoreRobots()
                 ->setMaximumDepth(1)
-                ->setCurrentCrawlLimit(3)
+                ->setCurrentCrawlLimit(1)
                 ->setDelayBetweenRequests(500) // 500ms
                 ->doNotExecuteJavaScript()
                 ->setCrawlObserver($logger)
                 ->startCrawling($url);
-            $ret = $logger->getResult();
+            $array = $logger->getResult();
+            $ret = sprintf("website:%s, title=%s, description=%s, length of body=%d",
+                        $url, $array['title'], $array['description'], strlen($array['body']));
         } catch(\Exception $e) {
-            Debug::out(__FILE__, __LINE__, __FUNCTION__, $e);
+            Debug::out(__FILE__, __LINE__, __FUNCTION__, $e->getMessage());
+            $ret = sprintf("%s is Not accessible. (%s)", $url, $e->getMessage());
         }
         return $ret;
     }
     function screenshot() {
-        Debug::out(__FILE__, __LINE__, __FUNCTION__, $_SERVER['QUERY_STRING']);
+        Debug::out(__FILE__, __LINE__, __FUNCTION__, $_SERVER['QUERY_STRING']);        
         try {
-            $ret = Browsershot::url($_SERVER['QUERY_STRING'])
-                    ->setOption('landscape', true)
-                    ->windowSize(1920, 1080)
-                    ->waitUntilNetworkIdle()
-                    ->save(config('filesystems.disks.public.root') . '/screenshot.jpg');
-            Debug::out(__FILE__, __LINE__, __FUNCTION__, $this->page_title($_SERVER['QUERY_STRING']));
+            ini_set('default_socket_timeout', 10);
+            $url = $_SERVER['QUERY_STRING'];
+            $header = get_headers($url);
+            Debug::out(__FILE__, __LINE__, __FUNCTION__, $header);
+            if (false !== array_search("HTTP/1.1 200 OK", $header, true)) {
+                $index = array_search("HTTP/1.1 301 Moved Permanently", $header, true);
+                if (false !== $index) {
+                    for($i=$index+1;$i<count($header);$i++) {
+                        if (str_contains($header[$i], "Location: ")) {
+                            $location = substr($header[$i], strlen("Location: "));
+                            break;
+                        }
+                    }
+                }
+                else 
+                    $location = $url;
+                Debug::out(__FILE__, __LINE__, __FUNCTION__, $location);
+                $info = $this->page_information($location);
+                $ret = Browsershot::url($location)
+                        ->setOption('landscape', true)
+                        ->windowSize(1920, 1080)
+                        ->waitUntilNetworkIdle()
+                        ->save(config('filesystems.disks.public.root') . '/screenshot.jpg');
+                $ret = sprintf("%s is OK. (%s)", $url, $info);
+            }
+            else {
+                $ret = sprintf("%s is NOT accessible. (failed to get_headers)", $url);
+            }
+            Debug::out(__FILE__, __LINE__, __FUNCTION__, $ret);
+            echo $ret;
         } catch(\Exception $e) {
-            Debug::out(__FILE__, __LINE__, __FUNCTION__, $e);
+            Debug::out(__FILE__, __LINE__, __FUNCTION__, $e->getMessage());
+            echo sprintf("%s is NOT valid url. (%s)", $url, $e->getMessage());
         }
     }
 }
