@@ -15,6 +15,7 @@ use Spatie\Browsershot\Browsershot;
 class CrawlLogger extends CrawlObserver
 {
     protected string $observerId;
+    private $internal_pages = [];
     private $page = [];
     public function __construct(string $observerId = '')
     {
@@ -70,13 +71,21 @@ class CrawlLogger extends CrawlObserver
                             if($meta->getAttribute('name') == 'description')
                                 $description = $meta->getAttribute('content');
                         }
-
+                        
+                        $mock = new \DOMDocument;
+                        $body = $doc->getElementsByTagName('body')->item(0);
+                        foreach ($body->childNodes as $child){
+                            $mock->appendChild($mock->importNode($child, true));
+                        }
+                        //Debug::out(__FILE__, __LINE__, __FUNCTION__, $mock->saveHTML());
+                        
                         $this->page = [
                             'url' => $url,
                             'title' => $title,
                             'description' => (true !== empty($description))?$description:'',
-                            'body' => $body
+                            'body' => $mock->saveHTML()
                         ];
+                        $this->internal_pages[] = $this->page;
                     }
                 }
             }
@@ -113,9 +122,20 @@ class CrawlLogger extends CrawlObserver
      */
     public function finishedCrawling(): void
     {
-        //echo sprintf("%s, %s, %s, %d\n", $this->page['path'], $this->page['title'], $this->page['description'], strlen($this->page['body']));
-        //Debug::out(__FILE__, __LINE__, __FUNCTION__, sprintf("%s, %s, %s, %d\n", $this->page['path'], $this->page['title'], $this->page['description'], strlen($this->page['body'])));
         Debug::out(__FILE__, __LINE__, __FUNCTION__, "{$this->observerId}finished crawling");
+        $index=0;
+        foreach ($this->internal_pages as $p){
+            Debug::out(__FILE__, __LINE__, __FUNCTION__, 
+                sprintf("[%d] %s/%s/%s/%d", 
+                    $index, 
+                    (isset($p['url']))?$p['url']:'', 
+                    (isset($p['title']))?$p['title']:'', 
+                    (isset($p['description']))?$p['description']:'', 
+                    (isset($p['body']))?strlen($p['body']):0
+                )
+            );
+            $index++;
+        }
     }
 
     public function getResult(): array {
@@ -139,14 +159,29 @@ class BrowsershotController extends Controller
                 ->setCrawlObserver($logger)
                 ->startCrawling($url);
             $array = $logger->getResult();
-            $ret = sprintf("website:%s, title=%s, description=%s, length of body=%d",
-                        $url, (isset($array['title']))?$array['title']:'', (isset($array['description']))?$array['description']:'', (isset($array['body']))?strlen($array['body']):0);
+            $ret =  sprintf("website:%s, title=%s, description=%s, length of body=%d",
+                        $url, 
+                        (isset($array['title']))?$array['title']:'',
+                        (isset($array['description']))?$array['description']:'',
+                        (isset($array['body']))?strlen($array['body']):0
+                    );
+            //echo $array['body'];
         } catch(\Exception $e) {
             Debug::out(__FILE__, __LINE__, __FUNCTION__, $e->getMessage());
             $ret = sprintf("%s is Not accessible. (%s)", $url, $e->getMessage());
         }
         return $ret;
     }
+    /*
+    function get_content($URL){
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_URL, $URL);
+        $data = curl_exec($ch);
+        curl_close($ch);
+        return $data;
+    }
+    */
     function screenshot() {
         Debug::out(__FILE__, __LINE__, __FUNCTION__, $_SERVER['QUERY_STRING']);        
         try {
@@ -154,6 +189,7 @@ class BrowsershotController extends Controller
             $url = $_SERVER['QUERY_STRING'];
             $header = get_headers($url);
             Debug::out(__FILE__, __LINE__, __FUNCTION__, $header);
+            $body = '';
             if (false !== array_search("HTTP/1.1 200 OK", $header, true)) {
                 $index = array_search("HTTP/1.1 301 Moved Permanently", $header, true);
                 if (false !== $index) {
@@ -166,6 +202,18 @@ class BrowsershotController extends Controller
                 }
                 else 
                     $location = $url;
+                /*
+                libxml_use_internal_errors(true);
+                $d = new \DOMDocument;
+                $mock = new \DOMDocument;                
+                $d->loadhtml($this->get_content($location));
+                $body = $d->getElementsByTagName('body')->item(0);
+                foreach ($body->childNodes as $child){
+                    $mock->appendChild($mock->importNode($child, true));
+                }
+                $body = $mock->saveHTML();
+                Debug::out(__FILE__, __LINE__, __FUNCTION__, $body);
+                */
                 Debug::out(__FILE__, __LINE__, __FUNCTION__, $location);
                 $info = $this->page_information($location);
                 $ret = Browsershot::url($location)
