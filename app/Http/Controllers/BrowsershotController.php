@@ -60,22 +60,24 @@ class CrawlLogger extends CrawlObserver
                     $doc->loadhtml($body);
                     //Debug::out(__FILE__, __LINE__, __FUNCTION__, $doc);
                     $title = $doc->getElementsByTagName("title")[0]->nodeValue;
-                    $metas = $doc->getElementsByTagName('meta');
-                    for ($i = 0; $i < $metas->length; $i++)
-                    {
-                        //meta tags
-                        $meta = $metas->item($i);
-                        //description.
-                        if($meta->getAttribute('name') == 'description')
-                            $description = $meta->getAttribute('content');
-                    }
+                    if (0 != strncmp($title, '301 ', strlen('301 ')) && 0 !== strncmp($title, '302 ', strlen('302 '))) {
+                        $metas = $doc->getElementsByTagName('meta');
+                        for ($i = 0; $i < $metas->length; $i++)
+                        {
+                            //meta tags
+                            $meta = $metas->item($i);
+                            //description.
+                            if($meta->getAttribute('name') == 'description')
+                                $description = $meta->getAttribute('content');
+                        }
 
-                    $this->page = [
-                        'url' => $url,
-                        'title' => $title,
-                        'description' => (true !== empty($description))?$description:'',
-                        'body' => $body
-                    ];
+                        $this->page = [
+                            'url' => $url,
+                            'title' => $title,
+                            'description' => (true !== empty($description))?$description:'',
+                            'body' => $body
+                        ];
+                    }
                 }
             }
         } catch(\Exception $e) {
