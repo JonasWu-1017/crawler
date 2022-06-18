@@ -132,7 +132,7 @@ class BrowsershotController extends Controller
             $logger = new CrawlLogger();
             Crawler::create()
                 ->ignoreRobots()
-                ->setMaximumDepth(($istwitter)?3:1)
+                ->setMaximumDepth(($istwitter)?4:1)
                 ->setCurrentCrawlLimit(($istwitter)?50:2)
                 ->setDelayBetweenRequests(500) // 500ms
                 ->doNotExecuteJavaScript()
