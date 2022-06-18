@@ -1,13 +1,23 @@
 import React from "react";
+import '../../css/app.css';
 
 const Home = () => {
-    let parameter1 = "React";
-    let parameter2 = "laravel 8";
-
     return (
-        <h1>
-            Hello {parameter1} + {parameter2}
-        </h1>
+        <div className="App">
+            <header className="App-header">
+                <p>
+                Edit <code>src/App.js</code> and save to reload.
+                </p>
+                <a
+                className="App-link"
+                href="https://reactjs.org"
+                target="_blank"
+                rel="noopener noreferrer"
+                >
+                Learn React
+                </a>
+            </header>
+        </div>
     );
 };
 
