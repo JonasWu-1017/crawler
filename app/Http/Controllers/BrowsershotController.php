@@ -50,13 +50,16 @@ class CrawlLogger extends CrawlObserver
 
         try {
             $path = $url->getPath();
+            //if ('/' == $path && false === isset($this->page['title'])) {
             if ('/' == $path) {
                 libxml_use_internal_errors(true);
                 $doc = new \DOMDocument();
-                $doc->loadhtml($response->getBody());
-                //Debug::out(__FILE__, __LINE__, __FUNCTION__, $doc);
-                $title = $doc->getElementsByTagName("title")[0]->nodeValue;
-                if (0 != strncmp($title, '301', strlen('301'))) {
+                $body = $response->getBody();
+                if (true !== empty($body))
+                {
+                    $doc->loadhtml($body);
+                    //Debug::out(__FILE__, __LINE__, __FUNCTION__, $doc);
+                    $title = $doc->getElementsByTagName("title")[0]->nodeValue;
                     $metas = $doc->getElementsByTagName('meta');
                     for ($i = 0; $i < $metas->length; $i++)
                     {
@@ -68,10 +71,10 @@ class CrawlLogger extends CrawlObserver
                     }
 
                     $this->page = [
-                        'path'=>$path,
-                        'title'=> $title,
-                        'description' => (isset($description))?$description:'',
-                        'body' => $response->getBody()
+                        'url' => $url,
+                        'title' => $title,
+                        'description' => (true !== empty($description))?$description:'',
+                        'body' => $body
                     ];
                 }
             }
@@ -123,18 +126,19 @@ class BrowsershotController extends Controller
     function page_information($url):string {
         $ret = '';
         try {
+            $istwitter = str_contains($url, "twitter.com");
             $logger = new CrawlLogger();
             Crawler::create()
                 ->ignoreRobots()
-                ->setMaximumDepth(1)
-                ->setCurrentCrawlLimit(1)
+                ->setMaximumDepth(($istwitter)?3:1)
+                ->setCurrentCrawlLimit(($istwitter)?50:2)
                 ->setDelayBetweenRequests(500) // 500ms
                 ->doNotExecuteJavaScript()
                 ->setCrawlObserver($logger)
                 ->startCrawling($url);
             $array = $logger->getResult();
             $ret = sprintf("website:%s, title=%s, description=%s, length of body=%d",
-                        $url, $array['title'], $array['description'], strlen($array['body']));
+                        $url, (isset($array['title']))?$array['title']:'', (isset($array['description']))?$array['description']:'', (isset($array['body']))?strlen($array['body']):0);
         } catch(\Exception $e) {
             Debug::out(__FILE__, __LINE__, __FUNCTION__, $e->getMessage());
             $ret = sprintf("%s is Not accessible. (%s)", $url, $e->getMessage());
