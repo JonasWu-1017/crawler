@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 BASEDIR=`cd $(dirname $0); pwd`
 cd $BASEDIR
@@ -9,12 +9,24 @@ case $CMD in
         if [ ! -f ".env" ]; then
             sudo cp ".env.example" ".env" -a
         fi
+
+        sudo apt update
+        NODE_VER=`node -v`
+        NODE_VER_N=${NODE_VER:1:2}
+        if [ "${NODE_VER:1:2}" -lt "14" ]; then            
+            sudo curl -sL https://deb.nodesource.com/setup_14.x | sudo bash -
+            sudo apt-get install -y nodejs
+        fi
+        sudo apt-get install -y libgbm-dev
+        sudo apt-get install -y libasound2
+        sudo mkdir -p '/usr/lib/node_modules/puppeteer/.local-chromium'
+        sudo npm install puppeteer --location=global
         
         # Install Packages
-        if [ -f "/usr/local/bin/composer" ]; then
-            sudo /usr/local/bin/composer install -n
-        fi
-        
+        sudo composer install -n
+        sudo npm install -g npm
+        sudo npm install laravel-mix@latest
+    
         sudo php artisan config:cache
         sudo php artisan config:clear
         sudo php artisan cache:clear
@@ -24,16 +36,11 @@ case $CMD in
         sudo php artisan key:generate --force
         sudo php artisan storage:link
     ;;
-    run)
-        sudo npm run dev
-        sudo php artisan serve
-    ;;
     *)
         echo "Usage:"
         echo "   init.sh [commands]\n"
         echo "Commands:"
         echo "   env        Generate develop '.env' and run 'composer install'\n"
-        echo "   run        npm run dev & php artisan serve'\n"
     ;;    
 esac
 
