@@ -228,14 +228,14 @@ class BrowsershotController extends Controller
                 $array = null;
                 if ('0' === $force) {
                     if (file_exists(config('filesystems.disks.public.root') . '/' . base64_encode($location) . '.jpg')) {
-                        $array = json_decode(file_get_contents(config('filesystems.disks.public.root') . '/' . base64_encode($location) . '.txt'), true);
-                        Debug::out(__FILE__, __LINE__, __FUNCTION__, $array);
+                        $array = json_decode(file_get_contents(config('filesystems.disks.public.root') . '/' . base64_encode($location) . '.txt'), true);                        
                         $info =  sprintf("website:%s, title=%s, description=%s, length of body=%d",
                                     $location, 
                                     (isset($array['title']))?$array['title']:'',
                                     (isset($array['description']))?$array['description']:'',
                                     (isset($array['body']))?strlen($array['body']):0
                                 );
+                        $array['display'] = config('filesystems.disks.public.url') . '/' . base64_encode($location) . '.jpg';
                     }
                 } else {
                     $info = $this->page_information($location);
@@ -245,8 +245,9 @@ class BrowsershotController extends Controller
                         ->waitUntilNetworkIdle()
                         ->save(config('filesystems.disks.public.root') . '/' . base64_encode($location) . '.jpg');
                     $array = json_decode(file_get_contents(config('filesystems.disks.public.root') . '/' . base64_encode($location) . '.txt'), true);
-                    Debug::out(__FILE__, __LINE__, __FUNCTION__, $array);
+                    $array['display'] = config('filesystems.disks.public.url') . '/' . base64_encode($location) . '.jpg';
                 }
+                Debug::out(__FILE__, __LINE__, __FUNCTION__, $array);
                 $resp = config('response.Success');
                 $resp += ['data' => $array];
                 $ret = sprintf("%s is OK. (%s)", $url, $info);                

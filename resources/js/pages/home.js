@@ -7,8 +7,15 @@ class Home extends React.Component
     constructor(props) {
         super(props);
         this.reset();
+        try {
+            let old = JSON.parse(sessionStorage.getItem("crawl_settings"));
+            this.state.inputValue = old.inputValue;
+            this.state.forceValue = old.forceValue;
+        } catch (error) {
+            //console.log(error);
+        }
     };
-
+    
     reset() {
         this.state = {
             disabled: false,
@@ -16,13 +23,13 @@ class Home extends React.Component
             forceValue: 0,
         };
     };
-
+    
     GET = async() => {
         this.setState( {disabled: true} );
         try 
         {
             const Data = await axios.get("/api/screenshot?force=" + this.state.forceValue + "&url=" + this.state.inputValue); 
-            console.log(Data.data);
+            //console.log(Data.data);
             let ret = "("+Data.data.code+") "+Data.data.msg;
             if ("0" == Data.data.code) {
                 ret += "\nwebsite=" + Data.data.data.url;
@@ -31,12 +38,18 @@ class Home extends React.Component
                 let body = Data.data.data.body;
                 ret += "\nbody length=" + body.length;
             }
-            alert(ret);
+            if ("0" == Data.data.code) {
+                //console.log(window.location.pathname);
+                sessionStorage.setItem("crawl_ret", JSON.stringify(Data.data.data));
+                sessionStorage.setItem("crawl_settings", JSON.stringify(this.state));
+                window.location.pathname = "/detail";
+            } else
+                alert(ret);
         } 
         catch (error) 
         {
-            console.log(error);
-            alert("Error!"); 
+            //console.log(error);
+            alert(JSON.stringify(error)); 
         }
         this.setState( {disabled: false} );
     };

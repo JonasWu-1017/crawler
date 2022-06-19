@@ -36,3 +36,13 @@
     transform: rotate(360deg);
   }
 }
+
+textarea {
+  width: 960px;
+  height: 540px;
+  background-color: yellow;
+  font-size: 12px;
+  font-weight: bold;
+  font-family: Verdana, Arial, Helvetica, sans-serif;
+  border: 1px solid black;
+ }
