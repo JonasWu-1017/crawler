@@ -1,5 +1,5 @@
 # About crawler
-inut a website then it will try to get the screenshot, title, description, and body of the website.
+enter a website then it will try to get the screenshot, title, description, and body of the website.
 
 # Prepare
 ```
