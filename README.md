@@ -18,5 +18,5 @@ sodu npm run dev
 sudo php artisan serve
 ```
 # Reference
-[https://github.com/spatie/crawler](https://github.com/spatie/crawler)
+[https://github.com/spatie/crawler](https://github.com/spatie/crawler)<br/>
 [https://github.com/spatie/browsershot](https://github.com/spatie/browsershot)
