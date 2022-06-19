@@ -2,6 +2,10 @@
 
 use Inertia\Inertia;
 
-Route::get('home', function(){
+Route::get('', function(){
+  return Inertia::render('home');
+});
+
+Route::get('/home', function(){
   return Inertia::render('home');
 });

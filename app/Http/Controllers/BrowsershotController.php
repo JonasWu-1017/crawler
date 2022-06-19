@@ -190,8 +190,9 @@ class BrowsershotController extends Controller
         $url = (!empty($params['url']))?$params['url']:'';
         $force = (!empty($params['force']))?$params['force']:'0';
         if (empty($url)) {
-            echo sprintf("website needs!");
-            return;
+            //echo sprintf("website needs!");
+            $resp = config('response.ErrorHttpHeader');
+            return response()->json($resp);
         }        
         try {
             ini_set('default_socket_timeout', 10);            
@@ -224,7 +225,7 @@ class BrowsershotController extends Controller
                 */
                 Debug::out(__FILE__, __LINE__, __FUNCTION__, $location);
                 Debug::out(__FILE__, __LINE__, __FUNCTION__, base64_encode($location));
-
+                $array = null;
                 if ('0' === $force) {
                     if (file_exists(config('filesystems.disks.public.root') . '/' . base64_encode($location) . '.jpg')) {
                         $array = json_decode(file_get_contents(config('filesystems.disks.public.root') . '/' . base64_encode($location) . '.txt'), true);
@@ -234,7 +235,7 @@ class BrowsershotController extends Controller
                                     (isset($array['title']))?$array['title']:'',
                                     (isset($array['description']))?$array['description']:'',
                                     (isset($array['body']))?strlen($array['body']):0
-                    );
+                                );
                     }
                 } else {
                     $info = $this->page_information($location);
@@ -243,17 +244,26 @@ class BrowsershotController extends Controller
                         ->windowSize(1920, 1080)
                         ->waitUntilNetworkIdle()
                         ->save(config('filesystems.disks.public.root') . '/' . base64_encode($location) . '.jpg');
+                    $array = json_decode(file_get_contents(config('filesystems.disks.public.root') . '/' . base64_encode($location) . '.txt'), true);
+                    Debug::out(__FILE__, __LINE__, __FUNCTION__, $array);
                 }
+                $resp = config('response.Success');
+                $resp += ['data' => $array];
                 $ret = sprintf("%s is OK. (%s)", $url, $info);                
             }
             else {
                 $ret = sprintf("%s is NOT accessible. (failed to get_headers)", $url);
+                $resp = config('response.ErrorWebsite');
             }
             Debug::out(__FILE__, __LINE__, __FUNCTION__, $ret);
-            echo $ret;
+            //echo $ret;            
         } catch(\Exception $e) {
             Debug::out(__FILE__, __LINE__, __FUNCTION__, $e->getMessage());
-            echo sprintf("%s is NOT valid url. (%s)", $url, $e->getMessage());
+            //echo sprintf("%s is NOT valid url. (%s)", $url, $e->getMessage());
+            $resp = config('response.Exception');
+            $resp += ['data' => $e->getMessage()];
         }
+        Debug::out(__FILE__, __LINE__, __FUNCTION__, $resp);
+        return response()->json($resp);
     }
 }
