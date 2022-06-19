@@ -165,6 +165,7 @@ class BrowsershotController extends Controller
                         (isset($array['description']))?$array['description']:'',
                         (isset($array['body']))?strlen($array['body']):0
                     );
+            file_put_contents(config('filesystems.disks.public.root') . '/' . base64_encode($url) . '.txt', json_encode($array));
             //echo $array['body'];
         } catch(\Exception $e) {
             Debug::out(__FILE__, __LINE__, __FUNCTION__, $e->getMessage());
@@ -183,10 +184,17 @@ class BrowsershotController extends Controller
     }
     */
     function screenshot() {
-        Debug::out(__FILE__, __LINE__, __FUNCTION__, $_SERVER['QUERY_STRING']);        
+        Debug::out(__FILE__, __LINE__, __FUNCTION__, $_SERVER['QUERY_STRING']);
+        parse_str($_SERVER['QUERY_STRING'], $params);
+        Debug::out(__FILE__, __LINE__, __FUNCTION__, $params);
+        $url = (!empty($params['url']))?$params['url']:'';
+        $force = (!empty($params['force']))?$params['force']:'0';
+        if (empty($url)) {
+            echo sprintf("website needs!");
+            return;
+        }        
         try {
-            ini_set('default_socket_timeout', 10);
-            $url = $_SERVER['QUERY_STRING'];
+            ini_set('default_socket_timeout', 10);            
             $header = get_headers($url);
             Debug::out(__FILE__, __LINE__, __FUNCTION__, $header);
             $body = '';
@@ -215,13 +223,28 @@ class BrowsershotController extends Controller
                 Debug::out(__FILE__, __LINE__, __FUNCTION__, $body);
                 */
                 Debug::out(__FILE__, __LINE__, __FUNCTION__, $location);
-                $info = $this->page_information($location);
-                $ret = Browsershot::url($location)
+                Debug::out(__FILE__, __LINE__, __FUNCTION__, base64_encode($location));
+
+                if ('0' === $force) {
+                    if (file_exists(config('filesystems.disks.public.root') . '/' . base64_encode($location) . '.jpg')) {
+                        $array = json_decode(file_get_contents(config('filesystems.disks.public.root') . '/' . base64_encode($location) . '.txt'), true);
+                        Debug::out(__FILE__, __LINE__, __FUNCTION__, $array);
+                        $info =  sprintf("website:%s, title=%s, description=%s, length of body=%d",
+                                    $location, 
+                                    (isset($array['title']))?$array['title']:'',
+                                    (isset($array['description']))?$array['description']:'',
+                                    (isset($array['body']))?strlen($array['body']):0
+                    );
+                    }
+                } else {
+                    $info = $this->page_information($location);
+                    Browsershot::url($location)
                         ->setOption('landscape', true)
                         ->windowSize(1920, 1080)
                         ->waitUntilNetworkIdle()
-                        ->save(config('filesystems.disks.public.root') . '/screenshot.jpg');
-                $ret = sprintf("%s is OK. (%s)", $url, $info);
+                        ->save(config('filesystems.disks.public.root') . '/' . base64_encode($location) . '.jpg');
+                }
+                $ret = sprintf("%s is OK. (%s)", $url, $info);                
             }
             else {
                 $ret = sprintf("%s is NOT accessible. (failed to get_headers)", $url);
