@@ -90,7 +90,7 @@ class Home extends React.Component
                                 disabled = {(this.state.disabled)? "disabled" : ""}
                                 onChange={evt => this.updateCheckValue(evt)}
                             />
-                            froce crawl to get the newest result
+                            froce to crawl the newest detail
                         </label>
                     </div>
                     <div>
